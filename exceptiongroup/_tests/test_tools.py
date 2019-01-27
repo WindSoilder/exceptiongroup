@@ -1,4 +1,7 @@
-from exceptiongroup import ExceptionGroup, split
+from collections.abc import Iterable
+from exceptiongroup import ExceptionGroup, split, leaf_exceptions
+
+import pytest
 
 
 def raise_error(err):
@@ -115,3 +118,39 @@ def test_split_and_check_attributes_same():
     assert unmatched.__traceback__ is new_group.__traceback__
     assert unmatched.__cause__ is new_group.__cause__
     assert unmatched.__context__ is new_group.__context__
+
+
+def test_leaf_exceptions_iterable():
+    group = ExceptionGroup("error", [RuntimeError("error1")], ["error1"])
+    result = leaf_exceptions(group)
+    assert isinstance(result, Iterable)
+
+
+def test_leaf_exceptions_values():
+    leaf_error1 = RuntimeError("Error1")
+    leaf_error2 = RuntimeError("Error2")
+    group = ExceptionGroup(
+        "error", [leaf_error1, leaf_error2], ["Error1", "Error2"]
+    )
+    result = list(leaf_exceptions(group))
+    assert result == [leaf_error1, leaf_error2]
+
+    # test for exception group which contains nested group
+    group = ExceptionGroup(
+        "error",
+        [leaf_error1, ExceptionGroup("Error2", [leaf_error2], ["Error2"])],
+        ["Error1", "Error2"],
+    )
+    result = list(leaf_exceptions(group))
+    assert result == [leaf_error1, leaf_error2]
+
+
+def test_leaf_exceptions_with_bare_exception():
+    error1 = RuntimeError("Error1")
+    result = list(leaf_exceptions(error1))
+    assert result == [error1]
+
+
+def test_leaf_exception_with_non_exception_object():
+    with pytest.raises(TypeError):
+        list(leaf_exceptions(None))

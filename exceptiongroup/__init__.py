@@ -2,7 +2,7 @@
 
 from ._version import __version__
 
-__all__ = ["ExceptionGroup", "split", "catch"]
+__all__ = ["ExceptionGroup", "split", "catch", "leaf_exceptions"]
 
 
 class ExceptionGroup(BaseException):
@@ -54,4 +54,4 @@ class ExceptionGroup(BaseException):
 
 
 from . import _monkeypatch
-from ._tools import split, catch
+from ._tools import split, catch, leaf_exceptions

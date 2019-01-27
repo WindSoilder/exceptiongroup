@@ -6,6 +6,25 @@ import copy
 from . import ExceptionGroup
 
 
+def leaf_exceptions(exc):
+    """ Iterate and extract sub exceptions from given exception.
+
+    Args:
+        exc (BaseException): Exception object we want to extract.
+    Yields:
+        leaf exception object.
+    """
+    if not isinstance(exc, BaseException):
+        raise TypeError(
+            "Argument `exc` should be an instance of BaseException."
+        )
+    if isinstance(exc, ExceptionGroup):
+        for subexc in exc.exceptions:
+            yield from leaf_exceptions(subexc)
+    else:
+        yield exc
+
+
 def split(exc_type, exc, *, match=None):
     """ splits the exception into one half (matched) representing all the parts of
     the exception that match the predicate, and another half (not matched)
