@@ -8,11 +8,23 @@ from . import ExceptionGroup
 
 def leaf_exceptions(exc):
     """ Iterate and extract sub exceptions from given exception.
+    When sub exceptions is also ExceptionGroup, it will iterate the
+    ExceptionGroup's sub-exceptions recursively.
 
     Args:
         exc (BaseException): Exception object we want to extract.
-    Yields:
-        leaf exception object.
+    Returns:
+        An iterable of BaseException object.
+
+    Examples:
+        error1 = RuntimeError("Error1")
+        error2 = RuntimeError("Error2")
+        group = ExceptionGroup(
+            "errorGroup",
+            [error1, error2],
+            ["Error1", "Error2"]
+        )
+        assert list(leaf_exceptions(group)) == [error1, error2]
     """
     if not isinstance(exc, BaseException):
         raise TypeError(
