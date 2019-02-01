@@ -26,7 +26,7 @@ class ExceptionGroup(BaseException):
     """
 
     def __init__(self, message, exceptions, sources):
-        super().__init__(message)
+        super().__init__(message, exceptions, sources)
         self.exceptions = list(exceptions)
         for exc in self.exceptions:
             if not isinstance(exc, BaseException):
@@ -50,7 +50,17 @@ class ExceptionGroup(BaseException):
         new_group.__traceback__ = self.__traceback__
         new_group.__context__ = self.__context__
         new_group.__cause__ = self.__cause__
+        # Setting __cause__ also implicitly sets the __suppress_context__
+        # attribute to True.  So we should copy __suppress_context__ attribute
+        # last, after copying __cause__.
+        new_group.__suppress_context__ = self.__suppress_context__
         return new_group
+
+    def __str__(self):
+        return ", ".join(repr(exc) for exc in self.exceptions)
+
+    def __repr__(self):
+        return "<ExceptionGroup: {}>".format(self)
 
 
 from . import _monkeypatch
