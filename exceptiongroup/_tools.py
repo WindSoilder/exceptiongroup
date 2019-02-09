@@ -3,6 +3,8 @@
 ################################################################
 
 import copy
+from functools import wraps
+from collections import OrderedDict
 from . import ExceptionGroup
 
 
@@ -55,6 +57,79 @@ def split(exc_type, exc, *, match=None):
             return exc, None
         else:
             return None, exc
+
+
+class HandlerChain:
+    """ An handler manager which chains many handlers.
+
+    Examples:
+        handler = HandlerChain()
+
+        @handler.handle(RuntimeError)
+        def handler1(exc):
+            pass
+
+        @handler.handle(ValueError)
+        def handler2(exc):
+            pass
+
+        try:
+            ..
+        except BaseException:
+            handler.run()
+    """
+
+    def __init__(self):
+        self._handlers = OrderedDict()
+
+    def handle(self, exc_type, match=None):
+        """ An decorator to chain decorated functions.
+
+        Args:
+            exc_type (BaseException): The exception type which need to be
+                handled.
+            match (None or func): match function to restict the handle
+                process, if the argument is not None, only exceptions with
+                match(exception) will go into handler.
+        """
+
+        def decorator(fn):
+            @wraps(fn)
+            def wrapper(*args, **kwargs):
+                return fn(*args, **kwargs)
+
+            self._handlers[exc_type] = (match, fn)
+            return wrapper
+
+        return decorator
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        pass
+
+
+def open_handler():
+    """ Returns a context manager which can run exception handler
+    automatically.
+
+    Returns:
+        An instance of HandlerChain context manager.
+
+    Example:
+        with open_handler() as handler:
+            @handler.handle(RuntimeError)
+            def handler1(exc):
+                pass
+
+            @handler.handle(ValueError)
+            def handler2(exc):
+                pass
+
+            # doing anything what you like to do inside the with block :)
+    """
+    return HandlerChain()
 
 
 class Catcher:
