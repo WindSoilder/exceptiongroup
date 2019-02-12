@@ -1,5 +1,5 @@
 import pytest
-from exceptiongroup import ExceptionGroup, split
+from exceptiongroup import ExceptionGroup, split, HandlerChain
 
 
 def raise_error(err):
@@ -113,3 +113,23 @@ def test_split_and_check_attributes_same():
     assert unmatched.__cause__ is new_group.__cause__
     assert unmatched.__context__ is new_group.__context__
     assert unmatched.__suppress_context__ is new_group.__suppress_context__
+
+
+def test_handler_chain_when_raise_bare_exception():
+    pass
+
+
+def test_handler_chain_when_raise_exception_group():
+    pass
+
+
+def test_handler_chain_when_raise_exception_group_with_all_handled():
+    pass
+
+
+def test_handler_chain_when_raise_exception_group_with_all_unhandled():
+    pass
+
+
+def test_handler_chain_when_raise_exception_group_with_partly_handled():
+    pass

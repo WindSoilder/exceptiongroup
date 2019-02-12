@@ -73,14 +73,17 @@ class HandlerChain:
         def handler2(exc):
             pass
 
-        try:
-            ..
-        except BaseException:
-            handler.run()
+        with handler:
+            # do anything we want to do.
+
+    Note that when there are any error(s) inside the handler, the handler will
+    always raise an instance of ExceptionGroup.  And we want to show more
+    readable messageses, and exception raised by handler will not have an
+    extra context.
     """
 
     def __init__(self):
-        self._handlers = OrderedDict()
+        self.handlers = OrderedDict()
 
     def handle(self, exc_type, match=None):
         """ An decorator to chain decorated functions.
@@ -98,7 +101,7 @@ class HandlerChain:
             def wrapper(*args, **kwargs):
                 return fn(*args, **kwargs)
 
-            self._handlers[exc_type] = (match, fn)
+            self.handlers[exc_type] = (match, fn)
             return wrapper
 
         return decorator
@@ -107,29 +110,46 @@ class HandlerChain:
         return self
 
     def __exit__(self, exc_type, exc, tb):
-        pass
-
-
-def open_handler():
-    """ Returns a context manager which can run exception handler
-    automatically.
-
-    Returns:
-        An instance of HandlerChain context manager.
-
-    Example:
-        with open_handler() as handler:
-            @handler.handle(RuntimeError)
-            def handler1(exc):
-                pass
-
-            @handler.handle(ValueError)
-            def handler2(exc):
-                pass
-
-            # doing anything what you like to do inside the with block :)
-    """
-    return HandlerChain()
+        # for now the __exit__ just handle for the simplest case.
+        # is that the exc is not an instance of `ExceptionGroup`
+        rest = exc
+        re_raised = []
+        for e_type, (match, handle) in self.handlers.items():
+            if rest is None:
+                break
+            caught, rest = split(e_type, rest, match=match)
+            if caught is not None:
+                # when handler handle exception, it may re-raise an exception.
+                # for the re-raised exception, we don't need the extra context.
+                # and __traceback__, which provide more information about user
+                # code, so we save the context for now.
+                saved_caught_context = caught.__context__
+                saved_caught_traceback = caught.__traceback__
+                try:
+                    handle(caught)
+                except BaseException as e:
+                    e.__context__ = saved_caught_context
+                    e.__traceback__ = saved_caught_traceback
+                    re_raised.append(e)
+        if rest is not None:
+            re_raised.append(rest)
+        if re_raised:
+            group = ExceptionGroup(
+                "Errors after handled by handler(s).",
+                re_raised,
+                [str(exc) for exc in re_raised],
+            )
+            # HACK: When we catch exception, and set the __context__
+            # with value None.  Then re-raise it, we can raise the exception
+            # without context, which can make our exception information more
+            # readable.
+            try:
+                raise group
+            except ExceptionGroup as e:
+                e.__context__ = None
+                # use `raise` rather than `raise e` to make our traceback
+                # more readable
+                raise
 
 
 class Catcher:
