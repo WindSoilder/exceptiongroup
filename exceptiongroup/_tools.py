@@ -150,6 +150,9 @@ class HandlerChain:
                 # use `raise` rather than `raise e` to make our traceback
                 # more readable
                 raise
+        else:
+            # Or swallow the exception, because handler eat it.
+            return True
 
 
 class Catcher:

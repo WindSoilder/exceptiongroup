@@ -116,20 +116,62 @@ def test_split_and_check_attributes_same():
 
 
 def test_handler_chain_when_raise_bare_exception():
-    pass
+    chain = HandlerChain()
+    with pytest.raises(ExceptionGroup):
+        with chain:
+            raise ValueError("This is a value error.")
+
+    @chain.handle(ValueError)
+    def value_error_handler(exc):
+        return None
+
+    # Here we should work successfully.
+    with chain:
+        raise ValueError("This is a value error which should not be raised.")
+
+    @chain.handle(ValueError)
+    def value_error_handler2(exc):
+        raise RuntimeError("This is a runtime error.")
+
+    with pytest.raises(ExceptionGroup):
+        with chain:
+            raise ValueError("This is a value error")
+
+    @chain.handle(ValueError)
+    def value_error_handler3(exc):
+        raise
+
+    with pytest.raises(ExceptionGroup):
+        with chain:
+            raise ValueError("This is a value error")
 
 
-def test_handler_chain_when_raise_exception_group():
-    pass
+def test_handler_chain_re_raised_properties():
+    chain = HandlerChain()
 
+    try:
+        with chain:
+            raise ValueError("This is a value error.")
+    except ExceptionGroup as e:
+        assert e.__context__ is None, "We should ensure that we get"
+        "None context to make tb more readable"
+        assert len(e.exceptions) == 1
+        assert isinstance(e.exceptions[0], ValueError)
 
-def test_handler_chain_when_raise_exception_group_with_all_handled():
-    pass
+    try:
+        with chain:
 
+            @chain.handle(ValueError)
+            def value_error_handler(exc):
+                raise RuntimeError("This is a runtime error")
 
-def test_handler_chain_when_raise_exception_group_with_all_unhandled():
-    pass
-
-
-def test_handler_chain_when_raise_exception_group_with_partly_handled():
-    pass
+            raise ValueError("This is a value error.")
+    except ExceptionGroup as e:
+        assert e.__context__ is None, "We should ensure that we get"
+        "None context to make tb more readable"
+        assert len(e.exceptions) == 1
+        assert isinstance(e.exceptions[0], RuntimeError)
+        # We should also make sure that the when handler re-raised exception,
+        # the exception's context is not changed by the handler.
+        # TODO: How to check the __traceback__? By check the frame object ?
+        assert e.exceptions[0].__context__ is None
