@@ -26,13 +26,15 @@ def raise_group():
     except Exception as e:
         run_err = e
 
-    raise ExceptionGroup("group", [val_err, run_err], [str(val_err), str(run_err)])
+    raise ExceptionGroup(
+        "group", [val_err, run_err], [str(val_err), str(run_err)]
+    )
 
 
 with chain:
 
     @chain.handle(ValueError)
     def handler(exc):
-        raise ZeroDivisionError('zero division error.')
+        raise ZeroDivisionError("zero division error.")
 
     raise_group()
